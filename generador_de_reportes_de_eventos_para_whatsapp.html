@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Generador de Reportes de Eventos - Distrito Educativo</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Font - Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#0f4c81',
+              800: '#1e3a8a',
+            },
+            wa: {
+              500: '#25D366',
+              600: '#128C7E',
+              700: '#075E54'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Estilos para custom scrollbar y visual de app móvil */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .touch-active:active {
+      transform: scale(0.98);
+      transition: transform 0.1s ease;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col justify-between pb-6">
+
+  <!-- Header Institucional Fijo -->
+  <header class="bg-gradient-to-r from-brand-800 via-brand-700 to-brand-600 text-white p-4 shadow-md sticky top-0 z-50">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+          <i class="fa-solid font-bold fa-bullhorn text-xl text-amber-300"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">Reportes de Eventos</h1>
+          <p class="text-xs text-blue-100">Comunicación Institucional Distrital</p>
+        </div>
+      </div>
+      <button onclick="limpiarFormulario()" title="Nuevo Reporte" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg border border-white/20 flex items-center gap-1.5 transition touch-active">
+        <i class="fa-solid fa-rotate-left"></i> Limpiar
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal App -->
+  <main class="max-w-md mx-auto w-full px-4 pt-4 flex-grow space-y-4">
+
+    <!-- Tarjeta de Plantillas / Borradores Rápidos -->
+    <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Accesos Rápidos
+        </span>
+        <span id="savedBadge" class="hidden text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+          Borrador guardado
+        </span>
+      </div>
+      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        <button onclick="cargarPlantilla('evaluacion')" class="text-xs whitespace-nowrap bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl border border-slate-200 font-medium touch-active">
+          📝 Eval. Auténtica
+        </button>
+        <button onclick="cargarPlantilla('deportes')" class="text-xs whitespace-nowrap bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl border border-slate-200 font-medium touch-active">
+          🏆 Inauguración Deportes
+        </button>
+        <button onclick="cargarPlantilla('feria')" class="text-xs whitespace-nowrap bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl border border-slate-200 font-medium touch-active">
+          🔬 Feria de Ciencias
+        </button>
+      </div>
+    </section>
+
+    <!-- FORMULARIO INTERACTIVO -->
+    <form id="reporteForm" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4" onsubmit="event.preventDefault();">
+      
+      <!-- ¿Qué? -->
+      <div>
+        <label class="block text-sm font-bold text-slate-700 mb-1">
+          ¿Qué? <span class="text-xs font-normal text-slate-500">(Nombre o tema del evento)</span>
+        </label>
+        <div class="relative">
+          <input type="text" id="que" placeholder="Ej. EVALUACIÓN AUTÉNTICA" 
+            class="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-medium uppercase tracking-wide placeholder:normal-case uppercase"
+            oninput="actualizarVistaPrevia(); guardarBorrador();">
+          <i class="fa-solid fa-heading absolute left-3 top-3.5 text-slate-400 text-base"></i>
+        </div>
+      </div>
+
+      <!-- ¿Cuándo? -->
+      <div>
+        <label class="block text-sm font-bold text-slate-700 mb-1">
+          ¿Cuándo? <span class="text-xs font-normal text-slate-500">(Fecha)</span>
+        </label>
+        <div class="grid grid-cols-12 gap-2">
+          <div class="col-span-8 relative">
+            <input type="text" id="cuandoText" placeholder="Ej. Martes 20 de Octubre del 2026" 
+              class="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-medium"
+              oninput="actualizarVistaPrevia(); guardarBorrador();">
+            <i class="fa-solid fa-calendar-day absolute left-3 top-3.5 text-slate-400 text-base"></i>
+          </div>
+          <div class="col-span-4">
+            <input type="date" id="cuandoPicker" class="w-full h-full border border-slate-300 rounded-xl px-2 text-xs text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              onchange="formatearFechaPicker(this.value)">
+          </div>
+        </div>
+      </div>
+
+      <!-- ¿Dónde? -->
+      <div>
+        <label class="block text-sm font-bold text-slate-700 mb-1">
+          ¿Dónde? <span class="text-xs font-normal text-slate-500">(Institución / Espacio)</span>
+        </label>
+        <div class="relative">
+          <input type="text" id="donde" placeholder="Ej. Unidad Educativa Fiscal Nono" 
+            class="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-medium"
+            oninput="actualizarVistaPrevia(); guardarBorrador();">
+          <i class="fa-solid fa-location-dot absolute left-3 top-3.5 text-slate-400 text-base"></i>
+        </div>
+      </div>
+
+      <!-- Para qué? -->
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-sm font-bold text-slate-700">
+            Para que? <span class="text-xs font-normal text-slate-500">(Objetivo / Propósito)</span>
+          </label>
+          <button type="button" onclick="abrirModalSugerencias()" class="text-xs text-brand-600 font-semibold hover:underline flex items-center gap-1">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Sugerencias
+          </button>
+        </div>
+        <textarea id="paraQue" rows="3" placeholder="Permite al docente conocer las habilidades reales del estudiante, no solo su memoria..."
+          class="w-full p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+          oninput="actualizarVistaPrevia(); guardarBorrador();"></textarea>
+      </div>
+
+      <!-- ¿Cuántos participan? -->
+      <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+        <label class="block text-sm font-bold text-slate-800 mb-1">
+          <i class="fa-solid fa-users text-brand-600 mr-1"></i> ¿Cuántos participan?
+        </label>
+        
+        <div class="grid grid-cols-3 gap-2">
+          <!-- Autoridad -->
+          <div class="bg-white p-2 rounded-lg border border-slate-200 text-center">
+            <span class="text-[11px] font-semibold text-slate-500 block mb-1">Autoridad</span>
+            <input type="number" id="autoridades" value="1" min="0" 
+              class="w-full text-center py-1 font-bold text-slate-800 bg-slate-50 rounded border border-slate-300 focus:ring-2 focus:ring-brand-500"
+              oninput="actualizarVistaPrevia(); guardarBorrador();">
+          </div>
+          <!-- Docentes -->
+          <div class="bg-white p-2 rounded-lg border border-slate-200 text-center">
+            <span class="text-[11px] font-semibold text-slate-500 block mb-1">Docentes</span>
+            <input type="number" id="docentes" value="19" min="0" 
+              class="w-full text-center py-1 font-bold text-slate-800 bg-slate-50 rounded border border-slate-300 focus:ring-2 focus:ring-brand-500"
+              oninput="actualizarVistaPrevia(); guardarBorrador();">
+          </div>
+          <!-- Estudiantes -->
+          <div class="bg-white p-2 rounded-lg border border-slate-200 text-center">
+            <span class="text-[11px] font-semibold text-slate-500 block mb-1">Estudiantes</span>
+            <input type="number" id="estudiantes" value="184" min="0" 
+              class="w-full text-center py-1 font-bold text-slate-800 bg-slate-50 rounded border border-slate-300 focus:ring-2 focus:ring-brand-500"
+              oninput="actualizarVistaPrevia(); guardarBorrador();">
+          </div>
+        </div>
+      </div>
+
+      <!-- Jornada -->
+      <div>
+        <label class="block text-sm font-bold text-slate-700 mb-1">Jornada</label>
+        <div class="grid grid-cols-3 gap-2">
+          <label class="cursor-pointer">
+            <input type="radio" name="jornada" value="Matutina" class="peer hidden" checked onchange="actualizarVistaPrevia(); guardarBorrador();">
+            <div class="text-center text-xs py-2 px-1 rounded-xl border border-slate-300 peer-checked:bg-brand-600 peer-checked:text-white peer-checked:border-brand-600 font-medium transition">
+              Matutina
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="jornada" value="Vespertina" class="peer hidden" onchange="actualizarVistaPrevia(); guardarBorrador();">
+            <div class="text-center text-xs py-2 px-1 rounded-xl border border-slate-300 peer-checked:bg-brand-600 peer-checked:text-white peer-checked:border-brand-600 font-medium transition">
+              Vespertina
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="jornada" value="Nocturna" class="peer hidden" onchange="actualizarVistaPrevia(); guardarBorrador();">
+            <div class="text-center text-xs py-2 px-1 rounded-xl border border-slate-300 peer-checked:bg-brand-600 peer-checked:text-white peer-checked:border-brand-600 font-medium transition">
+              Nocturna
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Selección de Fotografías -->
+      <div>
+        <label class="block text-sm font-bold text-slate-700 mb-1">
+          Evidencias Fotografías 📸
+        </label>
+        <div class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center hover:bg-slate-50 transition cursor-pointer" onclick="document.getElementById('fotoInput').click()">
+          <input type="file" id="fotoInput" multiple accept="image/*" class="hidden" onchange="manejarSeleccionFotos(event)">
+          <i class="fa-solid fa-camera text-2xl text-brand-500 mb-1"></i>
+          <p class="text-xs font-semibold text-slate-700">Tocar para seleccionar o tomar fotos</p>
+          <p class="text-[11px] text-slate-400">Puedes cargar múltiples fotos de evidencia</p>
+        </div>
+
+        <!-- Preview Galería de fotos -->
+        <div id="galeriaPreview" class="flex gap-2 overflow-x-auto pt-3 no-scrollbar empty:hidden"></div>
+      </div>
+
+    </form>
+
+    <!-- VISTA PREVIA FORMATO DISTRITO -->
+    <section class="bg-slate-900 text-slate-100 rounded-2xl p-4 shadow-lg border border-slate-800 space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div class="flex items-center space-x-2">
+          <i class="fa-brands fa-whatsapp text-wa-500 text-lg"></i>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Vista Previa para WhatsApp</span>
+        </div>
+        <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Formato Exacto</span>
+      </div>
+
+      <!-- Cuadro de Texto de Mensaje Exacto -->
+      <div class="bg-slate-950 p-3.5 rounded-xl font-mono text-xs leading-relaxed text-slate-200 select-all border border-slate-800 whitespace-pre-wrap break-words" id="vistaPreviaTexto">
+        <!-- Generado dinámicamente -->
+      </div>
+
+      <!-- Alerta Guiada para envío de Fotos -->
+      <div id="alertaFotos" class="hidden bg-amber-500/10 border border-amber-500/30 text-amber-200 p-2.5 rounded-xl text-xs flex items-start space-x-2">
+        <i class="fa-solid fa-circle-info text-amber-400 text-sm mt-0.5"></i>
+        <span><strong>Nota sobre WhatsApp:</strong> El texto del informe se pegará en el chat. Al abrir WhatsApp, adjunta las <span id="cantFotosSelected" class="font-bold underline">0</span> foto(s) desde la galería de tu celular.</span>
+      </div>
+
+      <!-- BOTONES DE ACCIÓN PRINCIPALES -->
+      <div class="grid grid-cols-1 gap-2.5 pt-1">
+        <button onclick="enviarPorWhatsApp()" class="w-full bg-wa-500 hover:bg-wa-600 active:bg-wa-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg flex items-center justify-center space-x-2 text-sm touch-active transition">
+          <i class="fa-brands fa-whatsapp text-xl"></i>
+          <span>Enviar a WhatsApp del Distrito</span>
+        </button>
+
+        <button onclick="copiarTextoAlPortapapeles()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 text-xs touch-active border border-slate-700 transition">
+          <i class="fa-regular fa-copy text-sm"></i>
+          <span>Copiar Texto al Portapapeles</span>
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL DE SUGERENCIAS PARA EL "PARA QUÉ" -->
+  <div id="modalSugerencias" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-200">
+      
+      <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+          <i class="fa-solid fa-lightbulb text-amber-500"></i> Sugerencias para "Para qué?"
+        </h3>
+        <button onclick="cerrarModalSugerencias()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-2 text-xs">
+        
+        <div onclick="usarSugerencia(this)" class="p-3 bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded-xl cursor-pointer transition">
+          Permite al docente conocer las habilidades reales del estudiante, no solo su memoria. Le ayuda a mejorar su forma de enseñar, a evaluar de manera más justa y a conectar el aprendizaje con la vida real de la comunidad.
+        </div>
+
+        <div onclick="usarSugerencia(this)" class="p-3 bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded-xl cursor-pointer transition">
+          Fomentar la participación activa de la comunidad educativa, promoviendo espacios de aprendizaje integral, valores cívicos y fortalecimiento institucional.
+        </div>
+
+        <div onclick="usarSugerencia(this)" class="p-3 bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded-xl cursor-pointer transition">
+          Incentivar el interés por la ciencia, la investigación y la sostenibilidad ambiental mediante proyectos prácticos e interdisciplinarios desarrollados en el aula.
+        </div>
+
+        <div onclick="usarSugerencia(this)" class="p-3 bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded-xl cursor-pointer transition">
+          Promover la integración socioemocional, el trabajo en equipo, la actividad física y el juego limpio en el marco del programa de bienestar estudiantil.
+        </div>
+
+      </div>
+
+      <div class="p-3 border-t border-slate-200 bg-slate-50 text-right">
+        <button onclick="cerrarModalSugerencias()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs">Cerrar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TOAST / NOTIFICACIÓN FLOTANTE -->
+  <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-2 z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
+    <i class="fa-solid fa-circle-check text-emerald-400 text-base" id="toastIcon"></i>
+    <span id="toastMsg">Mensaje copiado correctamente</span>
+  </div>
+
+  <!-- JAVASCRIPT DE LA APLICACIÓN -->
+  <script>
+    let imagenesSeleccionadas = [];
+
+    // Inicialización al cargar la página
+    window.onload = function() {
+      // Intentar cargar borrador guardado en el teléfono
+      if (!cargarBorrador()) {
+        // Si no hay borrador, poner fecha de hoy por defecto
+        establecerFechaHoy();
+        // Cargar plantilla modelo por defecto
+        cargarPlantilla('evaluacion');
+      }
+      actualizarVistaPrevia();
+    };
+
+    // Formatear Fecha por defecto
+    function establecerFechaHoy() {
+      const hoy = new Date();
+      const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      let fechaStr = hoy.toLocaleDateString('es-ES', opciones);
+      // Capitalizar primera letra de la fecha
+      fechaStr = fechaStr.charAt(0).toUpperCase() + fechaStr.slice(1);
+      document.getElementById('cuandoText').value = fechaStr;
+      document.getElementById('cuandoPicker').value = hoy.toISOString().split('T')[0];
+    }
+
+    // Convertir la fecha seleccionada en el datepicker a texto amigable
+    function formatearFechaPicker(val) {
+      if (!val) return;
+      const partes = val.split('-');
+      const fecha = new Date(partes[0], partes[1] - 1, partes[2]);
+      const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      let fechaStr = fecha.toLocaleDateString('es-ES', opciones);
+      fechaStr = fechaStr.charAt(0).toUpperCase() + fechaStr.slice(1);
+      
+      document.getElementById('cuandoText').value = fechaStr;
+      actualizarVistaPrevia();
+      guardarBorrador();
+    }
+
+    // Cargar Plantillas Prediseñadas
+    function cargarPlantilla(tipo) {
+      if (tipo === 'evaluacion') {
+        document.getElementById('que').value = "EVALUACIÓN AUTÉNTICA";
+        document.getElementById('donde').value = "Unidad Educativa Fiscal Nono";
+        document.getElementById('paraQue').value = "Permite al docente conocer las habilidades reales del estudiante, no solo su memoria.\nLe ayuda a mejorar su forma de enseñar, a evaluar de manera más justa y a conectar el aprendizaje con la vida real de la comunidad";
+        document.getElementById('autoridades').value = "1";
+        document.getElementById('docentes').value = "19";
+        document.getElementById('estudiantes').value = "184";
+      } else if (tipo === 'deportes') {
+        document.getElementById('que').value = "INAUGURACIÓN DE JUEGOS DEPORTIVOS INSTITUCIONALES";
+        document.getElementById('donde').value = "Patio Central de la Institución";
+        document.getElementById('paraQue').value = "Fomentar el deporte, la convivencia armónica, el trabajo en equipo y el bienestar físico y socioemocional de los estudiantes.";
+        document.getElementById('autoridades').value = "2";
+        document.getElementById('docentes').value = "22";
+        document.getElementById('estudiantes').value = "310";
+      } else if (tipo === 'feria') {
+        document.getElementById('que').value = "FERIA DE PROYECTOS PEDAGÓGICOS E INNOVACIÓN";
+        document.getElementById('donde').value = "Salón de Usos Múltiples";
+        document.getElementById('paraQue').value = "Exponer los aprendizajes significativos y proyectos interdisciplinarios desarrollados durante el trimestre académico por los estudiantes.";
+        document.getElementById('autoridades').value = "3";
+        document.getElementById('docentes').value = "15";
+        document.getElementById('estudiantes').value = "120";
+      }
+
+      actualizarVistaPrevia();
+      guardarBorrador();
+      mostrarToast("Plantilla cargada correctamente", "fa-bolt");
+    }
+
+    // Obtener Jornada Seleccionada
+    function obtenerJornada() {
+      const radios = document.getElementsByName('jornada');
+      for (let r of radios) {
+        if (r.checked) return r.value;
+      }
+      return "Matutina";
+    }
+
+    // Generar la cadena de texto exacta para WhatsApp
+    function construirTextoReporte() {
+      const que = document.getElementById('que').value.trim() || 'EVALUACIÓN AUTÉNTICA';
+      const cuando = document.getElementById('cuandoText').value.trim() || 'Martes 20 de Octubre del 2026.';
+      const donde = document.getElementById('donde').value.trim() || 'Unidad Educativa Fiscal Nono.';
+      const paraQue = document.getElementById('paraQue').value.trim() || 'Permite al docente conocer las habilidades reales del estudiante...';
+      const aut = document.getElementById('autoridades').value || '0';
+      const doc = document.getElementById('docentes').value || '0';
+      const est = document.getElementById('estudiantes').value || '0';
+      const jornada = obtenerJornada();
+
+      return `¿Qué? ${que}
+
+¿Cuándo? ${cuando}
+
+¿Dónde?
+${donde}
+
+Para que?
+${paraQue}
+
+¿Cuántos participan?
+Autoridad: ${aut}
+Docentes: ${doc}
+Estudiantes: ${est}
+
+Jornada: ${jornada}
+
+Evidencias Fotografías`;
+    }
+
+    // Actualizar la Vista Previa
+    function actualizarVistaPrevia() {
+      const texto = construirTextoReporte();
+      document.getElementById('vistaPreviaTexto').innerText = texto;
+    }
+
+    // Manejar selección de imágenes desde la cámara/galería
+    function manejarSeleccionFotos(e) {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          imagenesSeleccionadas.push(event.target.result);
+          renderizarGaleria();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Renderizar miniaturas de la galería
+    function renderizarGaleria() {
+      const contenedor = document.getElementById('galeriaPreview');
+      contenedor.innerHTML = '';
+
+      imagenesSeleccionadas.forEach((src, idx) => {
+        const div = document.createElement('div');
+        div.className = 'relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-slate-300 shadow-sm';
+        div.innerHTML = `
+          <img src="${src}" class="w-full h-full object-cover">
+          <button onclick="eliminarFoto(${idx})" class="absolute top-0.5 right-0.5 bg-red-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+            &times;
+          </button>
+        `;
+        contenedor.appendChild(div);
+      });
+
+      const alerta = document.getElementById('alertaFotos');
+      if (imagenesSeleccionadas.length > 0) {
+        alerta.classList.remove('hidden');
+        document.getElementById('cantFotosSelected').innerText = imagenesSeleccionadas.length;
+      } else {
+        alerta.classList.add('hidden');
+      }
+    }
+
+    function eliminarFoto(idx) {
+      imagenesSeleccionadas.splice(idx, 1);
+      renderizarGaleria();
+    }
+
+    // Enviar a WhatsApp
+    function enviarPorWhatsApp() {
+      const texto = construirTextoReporte();
+      const encodedText = encodeURIComponent(texto);
+      
+      // Abre el cliente de WhatsApp
+      const urlWA = `https://api.whatsapp.com/send?text=${encodedText}`;
+      
+      // Intentar copiar automáticamente al portapapeles para facilitar
+      copiarTextoAlPortapapeles(false);
+
+      if (imagenesSeleccionadas.length > 0) {
+        mostrarToast("Texto copiado. Ahora adjunta las fotos en WhatsApp", "fa-camera", 4000);
+      }
+
+      window.open(urlWA, '_blank');
+    }
+
+    // Copiar Texto al Portapapeles (compatible iFrame y Móviles)
+    function copiarTextoAlPortapapeles(mostrarNotificacion = true) {
+      const texto = construirTextoReporte();
+
+      // Usar textarea temporal para execCommand
+      const tempTextArea = document.createElement('textarea');
+      tempTextArea.value = texto;
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      tempTextArea.setSelectionRange(0, 99999); // Para dispositivos móviles
+
+      try {
+        document.execCommand('copy');
+        if (mostrarNotificacion) {
+          mostrarToast("¡Texto copiado al portapapeles!", "fa-circle-check");
+        }
+      } catch (err) {
+        console.error('Error al copiar: ', err);
+      }
+      document.body.removeChild(tempTextArea);
+    }
+
+    // Guardar borrador en el almacenamiento local del teléfono
+    function guardarBorrador() {
+      const datos = {
+        que: document.getElementById('que').value,
+        cuando: document.getElementById('cuandoText').value,
+        donde: document.getElementById('donde').value,
+        paraQue: document.getElementById('paraQue').value,
+        autoridades: document.getElementById('autoridades').value,
+        docentes: document.getElementById('docentes').value,
+        estudiantes: document.getElementById('estudiantes').value,
+        jornada: obtenerJornada()
+      };
+      localStorage.setItem('reporte_distrito_borrador', JSON.stringify(datos));
+      
+      const badge = document.getElementById('savedBadge');
+      badge.classList.remove('hidden');
+      setTimeout(() => badge.classList.add('hidden'), 2000);
+    }
+
+    // Cargar borrador previo
+    function cargarBorrador() {
+      const guardado = localStorage.getItem('reporte_distrito_borrador');
+      if (!guardado) return false;
+
+      try {
+        const datos = JSON.parse(guardado);
+        if (datos.que) document.getElementById('que').value = datos.que;
+        if (datos.cuando) document.getElementById('cuandoText').value = datos.cuando;
+        if (datos.donde) document.getElementById('donde').value = datos.donde;
+        if (datos.paraQue) document.getElementById('paraQue').value = datos.paraQue;
+        if (datos.autoridades) document.getElementById('autoridades').value = datos.autoridades;
+        if (datos.docentes) document.getElementById('docentes').value = datos.docentes;
+        if (datos.estudiantes) document.getElementById('estudiantes').value = datos.estudiantes;
+        
+        if (datos.jornada) {
+          const radios = document.getElementsByName('jornada');
+          for (let r of radios) {
+            if (r.value === datos.jornada) r.checked = true;
+          }
+        }
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // Limpiar formulario completo
+    function limpiarFormulario() {
+      document.getElementById('que').value = '';
+      document.getElementById('donde').value = '';
+      document.getElementById('paraQue').value = '';
+      document.getElementById('autoridades').value = '0';
+      document.getElementById('docentes').value = '0';
+      document.getElementById('estudiantes').value = '0';
+      imagenesSeleccionadas = [];
+      renderizarGaleria();
+      establecerFechaHoy();
+      actualizarVistaPrevia();
+      localStorage.removeItem('reporte_distrito_borrador');
+      mostrarToast("Formulario reiniciado", "fa-arrow-rotate-left");
+    }
+
+    // Modales y Sugerencias
+    function abrirModalSugerencias() {
+      document.getElementById('modalSugerencias').classList.remove('hidden');
+    }
+
+    function cerrarModalSugerencias() {
+      document.getElementById('modalSugerencias').classList.add('hidden');
+    }
+
+    function usarSugerencia(el) {
+      document.getElementById('paraQue').value = el.innerText.trim();
+      cerrarModalSugerencias();
+      actualizarVistaPrevia();
+      guardarBorrador();
+      mostrarToast("Sugerencia aplicada", "fa-check");
+    }
+
+    // Toast flotante
+    function mostrarToast(msg, icon = "fa-circle-check", duration = 2500) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.innerText = msg;
+      toastIcon.className = `fa-solid ${icon} text-emerald-400 text-base`;
+
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      toast.classList.add('opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, duration);
+    }
+  </script>
+</body>
+</html>
